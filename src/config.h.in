@@ -1,0 +1,6 @@
+#ifndef SVEN_CONFIG_H
+#define SVEN_CONFIG_H
+
+#cmakedefine CMAKE_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"
+
+#endif //SVEN_CONFIG_H

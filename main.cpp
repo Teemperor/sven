@@ -3,41 +3,39 @@
 #include <deque>
 #include "Dictionary.h"
 #include "Example.h"
+#include "config.h"
 
 static const char *Red = "\x1b[31m";
 static const char *Green = "\x1b[32m";
-//static const char *Yellow = "\x1b[33m";
+static const char *Yellow = "\x1b[33m";
 static const char *Blue = "\x1b[34m";
 static const char *Magenta = "\x1b[35m";
 //static const char *Cyan = "\x1b[36m";
 
-static std::string color(const char *Color, const std::string &Token) {
+static std::string color(const char *Color, const UString &Token) {
   static const char *Reset = "\x1b[0m";
-  return Color + Token + Reset;
+  return Color + Token.str() + Reset;
 }
 
-static std::string getValue(TiXmlElement *Elem) {
-  if (!Elem)
-    return "";
-
-  std::string Result;
-  int RC = Elem->QueryStringAttribute("value", &Result);
-  assert(RC == 0);
-  return Result;
+static void printWord(Dictionary &Dict, const Word &W) {
+  std::cout << color(Blue, W.getValue()) << "\n";
+  if (!W.getComment().empty()) {
+    std::cout << u8" † " << color(Yellow, W.getComment()) << "\n";
+  }
+  for (auto &Translation : W.getTranslations())
+    std::cout << color(Green, u8" • ") << Translation.str() << "\n";
+  for (auto ID : W.getExampleIDs()) {
+    auto E = Dict.getExample(ID);
+    std::cout << color(Red, u8" ☛ ") << E.getText();
+    std::cout << color(Magenta, "  " + E.getTranslation() + "") << "\n";
+  }
 }
 
 static void printResults(Dictionary &Dict, const std::deque<Word> &Results,
    std::size_t Limit) {
   std::size_t Counter = 0;
   for(const Word& W : Results) {
-    std::cout << color(Blue, W.getValue()) << "\n";
-    for (const std::string &Translation : W.getTranslations())
-      std::cout << color(Green, u8" • ") << Translation << "\n";
-    for (auto ID : W.getExampleIDs()) {
-      auto E = Dict.getExample(ID);
-      std::cout << color(Red, u8" ☛ ") << E.getText();
-      std::cout << color(Magenta, "  " + E.getTranslation() + "") << "\n";
-    }
+    printWord(Dict, W);
     std::cout << color(Green, u8"──────────────────────────\n");
     ++Counter;
     if (Counter >= Limit)
@@ -60,7 +58,7 @@ int cmdLoop(Dictionary &Dict) {
     if (!std::getline(std::cin, Line))
       break;
     if (Line.empty()) {
-      for (unsigned I = 0; I < WordsAtOnce; ++I) {
+      for (unsigned I = 0; I < WordsAtOnce && !LastResults.empty(); ++I) {
         LastResults.pop_front();
       }
     } else {
@@ -73,12 +71,25 @@ int cmdLoop(Dictionary &Dict) {
   return 0;
 }
 
+static std::string getValue(TiXmlElement *Elem, const char *FieldName = "value") {
+  if (!Elem)
+    return "";
+
+  std::string Result;
+  int RC = Elem->QueryStringAttribute(FieldName, &Result);
+  (void)RC;
+  return Result;
+}
+
+
 int main(int argc, char ** argv) {
+  std::string Path;
   if (argc == 1) {
-    std::cerr << "Need to pass a dictionary file!\n";
-    return 1;
+    Path = CMAKE_INSTALL_PREFIX + std::string("/share/sven/dict.xml");
+  } else {
+    Path = argv[1];
   }
-  TiXmlDocument doc(argv[1]);
+  TiXmlDocument doc(Path);
 
   Dictionary Dict;
 
@@ -92,6 +103,8 @@ int main(int argc, char ** argv) {
       while (wordElem) {
 
         Word W(getValue(wordElem));
+
+        W.setComment(getValue(wordElem, "comment"));
 
         TiXmlElement *translationElem = wordElem->FirstChildElement("translation");
         while(translationElem) {

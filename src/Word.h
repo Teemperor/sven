@@ -5,21 +5,27 @@
 #include <string>
 #include <vector>
 #include <cassert>
+#include "UString.h"
 
 class Word {
 
   static std::size_t IDCounter;
   std::size_t ID = IDCounter++;
-  std::string Value;
-  std::vector<std::string> Translations;
+  UString Value;
+  UString Comment;
+  std::vector<UString> Translations;
   std::vector<std::size_t> ExampleIDs;
 public:
-  explicit Word(std::string Value) : Value(std::move(Value)) {
-    assert(!this->Value.empty());
+  explicit Word(std::string V) : Value(std::move(V)) {
+    Value.removeAll("|");
   }
 
   void addTranslation(const std::string &T) {
-    Translations.push_back(T);
+    Translations.emplace_back(T);
+  }
+
+  void setComment(const std::string &C) {
+    Comment = C;
   }
 
   void addExampleID(std::size_t ID) {
@@ -30,11 +36,15 @@ public:
     return ID;
   }
 
-  const std::string &getValue() const {
+  const UString &getValue() const {
     return Value;
   }
 
-  const std::vector<std::string> &getTranslations() const {
+  const UString &getComment() const {
+    return Comment;
+  }
+
+  const std::vector<UString> &getTranslations() const {
     return Translations;
   }
 
@@ -43,10 +53,10 @@ public:
   }
 
   bool containsString(const std::string &S) const {
-    if (Value.find(S) != std::string::npos)
+    if (Value.contains(S))
       return true;
     for (const auto &T : Translations) {
-      if (T.find(S) != std::string::npos)
+      if (T.contains(S))
         return true;
     }
     return false;

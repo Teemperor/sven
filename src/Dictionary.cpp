@@ -7,8 +7,8 @@ std::deque<Word> Dictionary::search(const std::string &S) {
       Results.push_back(W);
   }
   std::sort(Results.begin(), Results.end(), [&S](const Word &A, const Word &B) {
-    bool AEq = A.getValue() == S;
-    bool BEq = B.getValue() == S;
+    bool AEq = A.getValue().icmp(S);
+    bool BEq = B.getValue().icmp(S);
     if (AEq && !BEq)
       return true;
     if (!AEq && BEq)
@@ -18,10 +18,10 @@ std::deque<Word> Dictionary::search(const std::string &S) {
 
     AEq = BEq = false;
     for (auto &T : A.getTranslations()) {
-      AEq |= T == S;
+      AEq |= T.icmp(S);
     }
     for (auto &T : B.getTranslations()) {
-      BEq |= T == S;
+      BEq |= T.icmp(S);
     }
 
     if (AEq && !BEq)
